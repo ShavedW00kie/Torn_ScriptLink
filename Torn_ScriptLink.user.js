@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn ScriptLink
 // @namespace    https://github.com/ShavedW00kie/
-// @version      1.0.2
+// @version      1.0.3
 // @description  Coordinate Torn script lists, faction packages and device status through Google Sheets, with sanitized JSON backups.
 // @author       ShavedW00kie (Torn: ThaWookie [2954173] )
 // @license      BSD-3-Clause
@@ -1514,7 +1514,7 @@ function createScriptLinkCore() {
 
 
     const Core = createScriptLinkCore();
-    const APP_VERSION = "1.0.2";
+    const APP_VERSION = "1.0.3";
     const MyDebug = initializeModularDebugger(GM_info.script.name);
     const CACHE_KEY = "torn-scriptlink:data:v1", CONFIG_KEY = "torn-scriptlink:connection:v1";
     const isPDA = typeof PDA_httpPost === "function" || /pda/i.test(GM_info.scriptHandler || "");
@@ -1899,8 +1899,13 @@ function createScriptLinkCore() {
         messageArea = el("p", "Sheets sync for your script lists. Installations remain under your control.", "sl-message"); messageArea.setAttribute("role", "status");
         stats = el("p", "", "sl-muted");
         const toolbar = el("div", undefined, "sl-toolbar"), find = textInput("", "Search names, tags and notes"); find.setAttribute("aria-label", "Search scripts"); find.oninput = () => {search = find.value.toLowerCase(); renderList();};
-        const file = el("input"); file.type = "file"; file.multiple = true; file.accept = ".json,.js,.txt,.zip"; file.hidden = true; file.onchange = () => {void action(() => importFiles(Array.from(file.files || []))); file.value = "";};
-        toolbar.append(find, button("Sync now", sync), button("Add script", () => showEditor()), button("Import", () => file.click()), button("Backup my list", () => exportList(data.scripts, "My Torn scripts")), button("Export this view", () => exportList(filtered(), view === "Packages" ? packageFilter : view)), file);
+        const file = el("input"); file.type = "file"; file.multiple = true; file.accept = ".json,.js,.txt,.zip"; file.hidden = true;
+        file.onchange = () => {const files = Array.from(file.files || []); file.value = ""; if (files.length) void action(() => importFiles(files));};
+        const importButton = el("button", "Import"); importButton.type = "button";
+        // Open directly in the user's click handler. action() disables inputs,
+        // which would disable this file input before its native picker opens.
+        importButton.addEventListener("click", () => {if (!busy) file.click();});
+        toolbar.append(find, button("Sync now", sync), button("Add script", () => showEditor()), importButton, button("Backup my list", () => exportList(data.scripts, "My Torn scripts")), button("Export this view", () => exportList(filtered(), view === "Packages" ? packageFilter : view)), file);
         nav = el("nav", undefined, "sl-nav"); nav.setAttribute("aria-label", "Script views");
         for (const label of ["All", "My scripts", "Faction supported", "Packages", ...Core.categories]) nav.append(button(label, () => {view = label; renderList();}));
         const filter = select(["All statuses", ...Core.statuses], statusFilter, value => {statusFilter = value; renderList();}); filter.setAttribute("aria-label", "Filter this device's status");
